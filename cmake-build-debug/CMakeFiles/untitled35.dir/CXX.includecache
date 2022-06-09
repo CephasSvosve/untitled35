@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/cephassvosve/CLionProjects/untitled35/Obj.cpp
+Obj.h
+/Users/cephassvosve/CLionProjects/untitled35/Obj.h
+
+/Users/cephassvosve/CLionProjects/untitled35/Obj.h
+vector
+-
+watch.h
+/Users/cephassvosve/CLionProjects/untitled35/watch.h
+
+/Users/cephassvosve/CLionProjects/untitled35/watch.h
+chrono
+-
+

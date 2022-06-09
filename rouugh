@@ -1,0 +1,263 @@
+tuple<order,order>
+match_market_orders(order &market_order, order &bid_order,order &ask_order){
+tuple<order,order> result;
+
+
+    if (market_order.get_order_size() < 0.){
+
+
+
+                double bid_price = (floor(bid_order.get_proposed_price()*100))/100;
+
+
+                    //do the standard market order to bid order
+                    bool bid_is_active = bid_order.get_status();
+                    bool mktask_is_active = market_order.get_status();
+
+                    if (bid_is_active && mktask_is_active) {
+                        //trade
+
+                        double mkt_cash = market_order.get_order_size() * market_order.get_proposed_price();
+                        double BID = bid_order.get_order_size();
+                        double ASK = mkt_cash / bid_price;
+                        std::cout<<market_order.get_id()<< " "<<bid_order.get_id()<<" price "<<bid_price <<" bid "<<BID<< " ask "<<ASK<<std::endl;
+                        auto uncleared = BID + ASK;
+                        std::cout<<"passed 1 "<<std::endl;
+//solve for the 3 situations: uncleared <, > or = 0;
+                        if (uncleared < 0.) {
+                            //calculate executed bid
+                            order exec_bid;
+                            auto exec_bid_price = bid_price;
+                            auto bid_trader_id = bid_order.get_id();
+
+                            exec_bid.set_id(bid_trader_id);
+                            exec_bid.set_status(order::active);
+                            exec_bid.set_order_type(order::limit);
+                            exec_bid.set_ordered_asset(bid_order.get_ordered_asset());
+                            exec_bid.set_order_size(BID, exec_bid_price);
+
+                            get<0>(result) = exec_bid;
+
+
+                            //calculate executed ask
+                            order exec_ask;
+                            auto exec_ask_price = bid_price;
+                            auto ask_trader_id = market_order.get_id();
+
+                            exec_ask.set_id(ask_trader_id);
+                            exec_ask.set_status(order::active);
+                            exec_ask.set_order_type(order::market);
+                            exec_ask.set_ordered_asset(market_order.get_ordered_asset());
+                            exec_ask.set_order_size(-BID, exec_ask_price);
+
+                            get<1>(result) = exec_ask;
+
+
+
+                            //update the ask orders remaining in the order vectors after execution of trade
+                            (&market_order)->set_order_size((uncleared * bid_price) / market_order.get_proposed_price(),
+                                                        market_order.get_proposed_price());
+                            //remove the fully filled bid order
+                            (&bid_order)->set_status(order::filled);
+
+                        } else if (uncleared > 0.) {
+                            //calculate executed bid
+                            order exec_bid;
+                            auto exec_bid_price = bid_price;
+                            auto bid_trader_id = bid_order.get_id();
+
+                            exec_bid.set_id(bid_trader_id);
+                            exec_bid.set_status(order::active);
+                            exec_bid.set_order_type(order::limit);
+                            exec_bid.set_ordered_asset(bid_order.get_ordered_asset());
+                            exec_bid.set_order_size((BID - uncleared), exec_bid_price);
+
+                            get<0>(result) = exec_bid;
+
+
+
+                            //calculate executed ask
+                            order exec_ask;
+                            auto exec_ask_price = bid_price;
+                            auto ask_trader_id = market_order.get_id();
+
+                            exec_ask.set_id(ask_trader_id);
+                            exec_ask.set_status(order::active);
+                            exec_ask.set_order_type(order::market);
+                            exec_ask.set_ordered_asset(market_order.get_ordered_asset());
+                            exec_ask.set_order_size(-(BID - uncleared), exec_ask_price);
+
+                            get<1>(result) = exec_ask;
+
+
+                            (&bid_order)->set_order_size(uncleared, bid_price);
+                            (&market_order)->set_status(order::filled);
+
+                        } else {
+                            //calculate executed bid
+                            order exec_bid;
+                            auto exec_bid_price = bid_price;
+                            auto bid_trader_id = bid_order.get_id();
+
+                            exec_bid.set_id(bid_trader_id);
+                            exec_bid.set_status(order::active);
+                            exec_bid.set_order_type(order::limit);
+                            exec_bid.set_ordered_asset(bid_order.get_ordered_asset());
+                            exec_bid.set_order_size(BID, exec_bid_price);
+
+                            get<0>(result) = exec_bid;
+
+
+                            //calculate executed ask
+                            order exec_ask;
+                            auto exec_ask_price = bid_price;
+                            auto ask_trader_id = market_order.get_id();
+
+                            exec_ask.set_id(ask_trader_id);
+                            exec_ask.set_status(order::active);
+                            exec_ask.set_order_type(order::market);
+                            exec_ask.set_ordered_asset(market_order.get_ordered_asset());
+                            exec_ask.set_order_size(-BID, exec_ask_price);
+
+                            get<1>(result) = exec_ask;
+
+
+                            (&bid_order)->set_status(order::filled);
+                            (&market_order)->set_status(order::filled);
+                        }
+
+                    }
+
+        std::cout<<"passed 2 "<<std::endl;
+
+            }else
+                if (market_order.get_order_size() > 0.) {
+
+
+
+                double ask_price = (floor(ask_order.get_proposed_price()*100))/100;
+
+
+                    bool ask_is_active = ask_order.get_status();
+                    bool mktbid_is_active = market_order.get_status();
+
+
+                    if (ask_is_active && mktbid_is_active) {
+                        //trade
+                        double mkt_cash = market_order.get_order_size() * market_order.get_proposed_price();
+                        double BID = mkt_cash / (ask_price);
+                        double ASK = ask_order.get_order_size();
+                        auto uncleared = BID + ASK;
+
+
+
+//solve for the 3 situations: uncleared <, > or = 0;
+                        if (uncleared < 0.) {
+                            //calculate executed bid
+                            order exec_bid;
+                            auto exec_bid_price = ask_price;
+                            auto bid_trader_id = market_order.get_id();
+
+                            exec_bid.set_id(bid_trader_id);
+                            exec_bid.set_status(order::active);
+                            exec_bid.set_order_type(order::limit);
+                            exec_bid.set_ordered_asset(market_order.get_ordered_asset());
+                            exec_bid.set_order_size(BID, exec_bid_price);
+
+                            get<0>(result) = exec_bid;
+
+                            //calculate executed ask
+                            order exec_ask;
+                            auto exec_ask_price = ask_price;
+                            auto ask_trader_id = ask_order.get_id();
+
+                            exec_ask.set_id(ask_trader_id);
+                            exec_ask.set_status(order::active);
+                            exec_ask.set_order_type(order::market);
+                            exec_ask.set_ordered_asset(ask_order.get_ordered_asset());
+                            exec_ask.set_order_size(-BID, exec_ask_price);
+
+                            get<1>(result) = exec_ask;
+
+
+
+                            //update the ask orders remaining in the order vectors after execution of trade
+                            (&ask_order)->set_order_size(uncleared, ask_price);
+                            //remove the fully filled bid order
+                            (&market_order)->set_status(order::filled);
+
+                        } else if (uncleared > 0.) {
+                            //calculate executed bid
+                            order exec_bid;
+                            auto exec_bid_price = ask_price;
+                            auto bid_trader_id = market_order.get_id();
+
+                            exec_bid.set_id(bid_trader_id);
+                            exec_bid.set_status(order::active);
+                            exec_bid.set_order_type(order::limit);
+                            exec_bid.set_ordered_asset(market_order.get_ordered_asset());
+                            exec_bid.set_order_size((BID - uncleared), exec_bid_price);
+
+                            get<0>(result) = exec_bid;
+
+
+
+                            //calculate executed ask
+                            order exec_ask;
+                            auto exec_ask_price = ask_price;
+                            auto ask_trader_id = ask_order.get_id();
+
+                            exec_ask.set_id(ask_trader_id);
+                            exec_ask.set_status(order::active);
+                            exec_ask.set_order_type(order::market);
+                            exec_ask.set_ordered_asset(ask_order.get_ordered_asset());
+                            exec_ask.set_order_size(-(BID - uncleared), exec_ask_price);
+
+                            get<1>(result) = exec_ask;
+
+                            market_order.set_order_size(
+                                    (uncleared * ask_price) / market_order.get_proposed_price(),
+                                    (&market_order)->get_proposed_price());
+                            (&ask_order)->set_status(order::filled);
+
+
+                        } else {
+                            //calculate executed bid
+                            order exec_bid;
+                            auto exec_bid_price = ask_price;
+                            auto bid_trader_id = market_order.get_id();
+
+                            exec_bid.set_id(bid_trader_id);
+                            exec_bid.set_status(order::active);
+                            exec_bid.set_order_type(order::limit);
+                            exec_bid.set_ordered_asset(market_order.get_ordered_asset());
+                            exec_bid.set_order_size(BID, exec_bid_price);
+
+                            get<0>(result) = exec_bid;
+
+
+
+
+                            //calculate executed ask
+                            order exec_ask;
+                            auto exec_ask_price = ask_price;
+                            auto ask_trader_id = ask_order.get_id();
+
+                            exec_ask.set_id(ask_trader_id);
+                            exec_ask.set_status(order::active);
+                            exec_ask.set_order_type(order::market);
+                            exec_ask.set_ordered_asset(ask_order.get_ordered_asset());
+                            exec_ask.set_order_size(-BID, exec_ask_price);
+
+                            get<1>(result) = exec_ask;
+
+
+                            market_order.set_status(order::filled);
+                            ask_order.set_status(order::filled);
+                        }
+                    }
+                    std::cout<<"passed 3 "<<std::endl;
+        }
+
+return result;
+}
